@@ -1,4 +1,4 @@
-﻿###############################################################################################################################
+###############################################################################################################################
 #                                                                                                                             #
 #  A PowerShell script to provide a CLI menu frontend to the popular FFMPEG tool with a selection of useful options.          #
 #                                                                                                                             #
@@ -10,32 +10,32 @@
 ###############################################################################################################################
 
 ###############################################################################################################################
-### Version History																											###
+### Version History                                                                                                         ###
 ###############################################################################################################################
-# 1.0 : First release																										  #
-# 1.1 : Major rewrite, added new option (join), moved file selection into function, filtered files it displays for choice.	  #
-# 1.2 : Fixed file display bugs.																							  #
-# 1.3 : Fixed bug where it wouldnt copy all audio streams.																	  #
-# 1.4 : Added option to change volume level.																				  #
-# 1.5 : 22/08/20 : Moved start time to beginning of command as this saves time parsing the input file.						  #
+# 1.0 : First release                                                                                                         #
+# 1.1 : Major rewrite, added new option (join), moved file selection into function, filtered files it displays for choice.    #
+# 1.2 : Fixed file display bugs.                                                                                              #
+# 1.3 : Fixed bug where it wouldnt copy all audio streams.                                                                    #
+# 1.4 : Added option to change volume level.                                                                                  #
+# 1.5 : 22/08/20 : Moved start time to beginning of command as this saves time parsing the input file.                        #
 # 1.6 : 23/08/20 : Added 6th option to cut and re-encode in the case that the normal cut method results in frozen frames at   #
-# the start.																												  #
+# the start.                                                                                                                  #
 # 1.7 : 27/04/21 : Now has the option to remove video and leave audio                                                         #
 # 1.8 : 19/09/21 : Added option to reverse a video.                                                                           #
 # 1.9 : 27/05/22 : Added option to convert WAV to FLAC.                                                                       #
 #                  Tidied up script.                                                                                          #
 #                  Now asks to open file and then delete                                                                      #
 # 1.10 : 13/03/23 : Added handling for start time variables to be automatically set to the start if null.                     #
-#																															  #
-# Possible future changes:  																								  #
-# Join more then 2 files.																									  #
-# Show progress bar.																										  #
-# Make options more dynamic.																								  #
+#                                                                                                                             #
+# Possible future changes:                                                                                                    #
+# Join more then 2 files.                                                                                                     #
+# Show progress bar.                                                                                                          #
+# Make options more dynamic.                                                                                                  #
 # Splice in another audio track                                                                                               #
 ###############################################################################################################################
 
 ###############################################################################################################################
-### Script Location Checker																									###
+### Script Location Checker                                                                                                 ###
 ###############################################################################################################################
 
 # Get the full path of this script:
@@ -46,11 +46,11 @@ $scriptPath = Split-Path $scriptPath
 Set-Location $scriptPath
 
 ###############################################################################################################################
-### End Of Script Location Checker																							###
+### End Of Script Location Checker                                                                                          ###
 ###############################################################################################################################
 
 ###############################################################################################################################
-### Functions                   																							###
+### Functions                                                                                                               ###
 ###############################################################################################################################
 
 # Main menu function that is used with the Show-SelectionMenu:
@@ -131,7 +131,7 @@ Function HandleFile ($file) {
 }
 
 ###############################################################################################################################
-### End Of Functions               																							###
+### End Of Functions                                                                                                        ###
 ###############################################################################################################################
 
 DO {
@@ -242,10 +242,10 @@ DO {
 
             HandleFile $outputFile
         }
-		
+        
         '7' {
             Show-SelectionMenu "7  -  Cut and convert to MP4 (THIS RE-ENCODES)" 1
-			
+            
             do {
                 # Prompts for the Start Time
                 $startTime = Read-Host -Prompt "Start Time? (HH:MM:SS or HH:MM:SS.SSS) OR just press enter to begin at the start of file."
