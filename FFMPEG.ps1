@@ -12,20 +12,31 @@
 ###############################################################################################################################
 ### Version History                                                                                                         ###
 ###############################################################################################################################
-# 1.0 : First release                                                                                                         #
-# 1.1 : Major rewrite, added new option (join), moved file selection into function, filtered files it displays for choice.    #
-# 1.2 : Fixed file display bugs.                                                                                              #
-# 1.3 : Fixed bug where it wouldnt copy all audio streams.                                                                    #
-# 1.4 : Added option to change volume level.                                                                                  #
-# 1.5 : 22/08/20 : Moved start time to beginning of command as this saves time parsing the input file.                        #
-# 1.6 : 23/08/20 : Added 6th option to cut and re-encode in the case that the normal cut method results in frozen frames at   #
-# the start.                                                                                                                  #
-# 1.7 : 27/04/21 : Now has the option to remove video and leave audio                                                         #
-# 1.8 : 19/09/21 : Added option to reverse a video.                                                                           #
-# 1.9 : 27/05/22 : Added option to convert WAV to FLAC.                                                                       #
-#                  Tidied up script.                                                                                          #
-#                  Now asks to open file and then delete                                                                      #
+# 1.0  :          : First release                                                                                             #
+# 1.1  :          : Major rewrite, added new option (join), moved file selection into function, filtered files it displays    #
+#                   for choice.                                                                                               #
+# 1.2  :          : Fixed file display bugs.                                                                                  #
+# 1.3  :          : Fixed bug where it wouldnt copy all audio streams.                                                        #
+# 1.4  :          : Added option to change volume level.                                                                      #
+# 1.5  : 22/08/20 : Moved start time to beginning of command as this saves time parsing the input file.                       #
+# 1.6  : 23/08/20 : Added 6th option to cut and re-encode in the case that the normal cut method results in frozen frames at  #
+#                   the start.                                                                                                #
+# 1.7  : 27/04/21 : Now has the option to remove video and leave audio                                                        #
+# 1.8  : 19/09/21 : Added option to reverse a video.                                                                          #
+# 1.9  : 27/05/22 : Added option to convert WAV to FLAC.                                                                      #
+#                   Tidied up script.                                                                                         #
+#                   Now asks to open file and then delete                                                                     #
 # 1.10 : 13/03/23 : Added handling for start time variables to be automatically set to the start if null.                     #
+# 1.11 : 26/04/23 : Changed runtime banner to include warning and author information.                                         #
+#                   Added new function to check if variable exists.                                                           #
+#                   Better checks for existing variables.                                                                     #
+#                   Variables laid out better using script scope.                                                             #
+#                   File selection will now only accept integers and only those for files that it has checked already exist.  #
+#                   Now checks if the edited files output location exists, if it doesnt then it creates the folder.           #
+#                   Checks if ffmpeg.exe exists in the right location, if not then exit with error.                           #
+#                   Reformatted ffmpeg commands so they adhere to best practices.                                             #
+#                   Fixed bug where option 10 was hardcoded to a set location.                                                #
+#                   Tidied up version history formatting.                                                                     #
 #                                                                                                                             #
 # Possible future changes:                                                                                                    #
 # Join more then 2 files.                                                                                                     #
@@ -53,14 +64,28 @@ Set-Location $scriptPath
 ### Functions                                                                                                               ###
 ###############################################################################################################################
 
+Function VariableExists ($variable) {
+    if (Get-Variable $variable -ErrorAction SilentlyContinue) {
+        return $true
+    }
+    else {
+        return $false
+    }
+}
+
 # Main menu function that is used with the Show-SelectionMenu:
 Function Show-Menu {
     param (
-        [string]$title = 'FFMPEG v2.0'
+        [string]$title = 'FFMPEG'
     )
     Clear-Host
-    Write-Host "================ $title ================"
-    
+    Write-Host "===================== $title ====================="
+    Write-Host ""
+    Write-Host "By Tom D'Silva 2019 - https://github.com/TomDSilva"
+    Write-Host ""
+    Write-Host "DISCLAIMER: THIS CODE IS PROVIDED FREE OF CHARGE. UNDER NO CIRCUMSTANCES SHALL I HAVE ANY LIABILITY TO YOU FOR ANY LOSS"
+    Write-Host "OR DAMAGE OF ANY KIND INCURRED AS A RESULT OF THE USE OF THIS CODE. YOUR USE OF THIS CODE IS SOLELY AT YOUR OWN RISK."
+    Write-Host ""
     Write-Host "Make your selection"
     Write-Host "1  -  Trim"
     Write-Host "2  -  Remove Audio"
@@ -74,10 +99,6 @@ Function Show-Menu {
     Write-Host "10 -  Convert A Single WAV file to FLAC"
     Write-Host "Q  -  Submit 'Q' to quit"
 }
-
-New-Variable $script:ans1
-New-Variable $script:ans2
-New-Variable $script:outputFile
 
 Function Show-SelectionMenu ($selection, [INT]$numberOfSelections) {
 
@@ -93,17 +114,58 @@ Function Show-SelectionMenu ($selection, [INT]$numberOfSelections) {
         }
 
         If ($numberOfSelections -EQ 1) {
-            [INT]$ans = Read-Host -Prompt "Please select a file:"
-            [STRING]$script:ans1 = $menu.Item($ans)
-            [STRING]$script:outputFile = "$scriptPath\Edited Files\$ans1"
+            $i = 0
+            do {
+                if ($i -ge 1) {
+                    Write-Warning "ERROR - Not a valid selection, please try again"
+                    Write-Host ($menu | Out-String)
+                }
+                [INT]$ans = Read-Host -Prompt "Please select a file by number:"
+                $i++
+            } until ($ans -in $menu.Keys)
+            if (VariableExists 'ans1') {
+                Remove-Variable 'ans1'
+            }
+            New-Variable -Name 'ans1' -Value $menu.Item($ans) -Scope 'Script'
+            if (VariableExists 'outputFile') {
+                Remove-Variable 'outputFile'
+            }
+            New-Variable -Name 'outputFile' -Value "$scriptPath\Edited Files\$ans1" -Scope 'Script'
         }
 
         If ($numberOfSelections -EQ 2) {
-            [INT]$ans = Read-Host "Please select the first file:"
-            [STRING]$script:ans1 = $menu.Item($ans)
-            [INT]$ans = Read-Host "Please select the second file:"
-            [STRING]$script:ans2 = $menu.Item($ans)
-            [STRING]$script:outputFile = "$scriptPath\Edited Files\JOINED $ans1 - $ans2"
+            $i = 0
+            do {
+                if ($i -ge 1) {
+                    Write-Warning "ERROR - Not a valid selection, please try again"
+                    Write-Host ($menu | Out-String)
+                }
+                [INT]$ans = Read-Host "Please select the first file by number:"
+                $i++
+            } until ($ans -in $menu.Keys)
+            if (VariableExists 'ans1') {
+                Remove-Variable 'ans1'
+            }
+            New-Variable -Name 'ans1' -Value $menu.Item($ans) -Scope 'Script'
+
+            $i = 0
+            do {
+                if ($i -ge 1) {
+                    Write-Warning "ERROR - Not a valid selection, please try again"
+                    Write-Host ($menu | Out-String)
+                }
+                [INT]$ans = Read-Host "Please select the second file by number:"
+                $i++
+            } until ($ans -in $menu.Keys)
+            if (VariableExists 'ans2') {
+                Remove-Variable 'ans2'
+            }
+            New-Variable -Name 'ans2' -Value $menu.Item($ans) -Scope 'Script'
+
+            if (VariableExists 'outputFile') {
+                Remove-Variable 'outputFile'
+            }
+            New-Variable -Name 'outputFile' -Value "$scriptPath\Edited Files\JOINED $ans1 - $ans2" -Scope 'Script'
         }
     }
 }
@@ -134,11 +196,21 @@ Function HandleFile ($file) {
 ### End Of Functions                                                                                                        ###
 ###############################################################################################################################
 
-DO {
+# If the "Edited Files" folder doesnt exist, then create it:
+if (!(Test-Path "$scriptPath\Edited Files\")) {
+    New-Item -ItemType "directory" -Path "$scriptPath\Edited Files\"
+}
+
+# If ffmpeg.exe is not present in the correct location then exit with error:
+if (!(Test-Path "$scriptPath\bin\ffmpeg.exe")) {
+    Write-Error "ffmpeg.exe not found in bin folder"
+    exit 1
+}
+
+do {
     Show-Menu 
     $selection = Read-Host "Please make a selection"
     switch ($selection) {
-
         '1' {
             Show-SelectionMenu "1  -  Trim" 1
 
@@ -157,14 +229,14 @@ DO {
             } until (![string]::IsNullOrWhiteSpace($startTime) -or ![string]::IsNullOrWhiteSpace($stopTime))
 
             if (![string]::IsNullOrWhiteSpace($startTime) -and ![string]::IsNullOrWhiteSpace($stopTime)) {
-                .\bin\ffmpeg.exe -ss $startTime -to $stopTime -i "$ans1" -acodec copy -vcodec copy -map 0 -avoid_negative_ts make_zero $outputFile
+                .\bin\ffmpeg.exe -i "$ans1" -ss $startTime -to $stopTime -acodec copy -vcodec copy -map 0 $outputFile
             }
             elseif ([string]::IsNullOrWhiteSpace($startTime) -and ![string]::IsNullOrWhiteSpace($stopTime)) {
                 $startTime = '00:00:00'
-                .\bin\ffmpeg.exe -ss $startTime -to $stopTime -i "$ans1" -acodec copy -vcodec copy -map 0 -avoid_negative_ts make_zero $outputFile
+                .\bin\ffmpeg.exe -i "$ans1" -ss $startTime -to $stopTime -acodec copy -vcodec copy $outputFile
             }
             elseif (![string]::IsNullOrWhiteSpace($startTime) -and [string]::IsNullOrWhiteSpace($stopTime)) {
-                .\bin\ffmpeg.exe -ss $startTime -i "$ans1" -acodec copy -vcodec copy -map 0 -avoid_negative_ts make_zero $outputFile
+                .\bin\ffmpeg.exe -i "$ans1" -ss $startTime -acodec copy -vcodec copy $outputFile
             }
 
             HandleFile $outputFile
@@ -196,14 +268,14 @@ DO {
             } until (![string]::IsNullOrWhiteSpace($startTime) -or ![string]::IsNullOrWhiteSpace($stopTime))
 
             if (![string]::IsNullOrWhiteSpace($startTime) -and ![string]::IsNullOrWhiteSpace($stopTime)) {
-                .\bin\ffmpeg.exe -ss $startTime -to $stopTime -i "$ans1" -acodec copy -vcodec copy -map 0 -avoid_negative_ts make_zero -an $outputFile
+                .\bin\ffmpeg.exe -i "$ans1" -ss $startTime -to $stopTime -vcodec copy -map 0 -an $outputFile
             }
             elseif ([string]::IsNullOrWhiteSpace($startTime) -and ![string]::IsNullOrWhiteSpace($stopTime)) {
                 $startTime = '00:00:00'
-                .\bin\ffmpeg.exe -ss $startTime -to $stopTime -i "$ans1" -acodec copy -vcodec copy -map 0 -avoid_negative_ts make_zero -an $outputFile
+                .\bin\ffmpeg.exe -i "$ans1" -ss $startTime -to $stopTime -vcodec copy -map 0 -an $outputFile
             }
             elseif (![string]::IsNullOrWhiteSpace($startTime) -and [string]::IsNullOrWhiteSpace($stopTime)) {
-                .\bin\ffmpeg.exe -ss $startTime -i "$ans1" -acodec copy -vcodec copy -map 0 -avoid_negative_ts make_zero -an $outputFile
+                .\bin\ffmpeg.exe -i "$ans1" -ss $startTime -vcodec copy -map 0 -an $outputFile
             }
 
             HandleFile $outputFile
@@ -261,14 +333,14 @@ DO {
             } until (![string]::IsNullOrWhiteSpace($startTime) -or ![string]::IsNullOrWhiteSpace($stopTime))
 
             if (![string]::IsNullOrWhiteSpace($startTime) -and ![string]::IsNullOrWhiteSpace($stopTime)) {
-                .\bin\ffmpeg.exe -ss $startTime -to $stopTime -i "$ans1" -acodec copy -map 0 -avoid_negative_ts make_zero $outputFile
+                .\bin\ffmpeg.exe -i "$ans1" -ss $startTime -to $stopTime -acodec copy -map 0 $outputFile
             }
             elseif ([string]::IsNullOrWhiteSpace($startTime) -and ![string]::IsNullOrWhiteSpace($stopTime)) {
                 $startTime = '00:00:00'
-                .\bin\ffmpeg.exe -ss $startTime -to $stopTime -i "$ans1" -acodec copy -map 0 -avoid_negative_ts make_zero $outputFile
+                .\bin\ffmpeg.exe -i "$ans1" -ss $startTime -to $stopTime -acodec copy -map 0 $outputFile
             }
             elseif (![string]::IsNullOrWhiteSpace($startTime) -and [string]::IsNullOrWhiteSpace($stopTime)) {
-                .\bin\ffmpeg.exe -ss $startTime -i "$ans1" -acodec copy -map 0 -avoid_negative_ts make_zero $outputFile
+                .\bin\ffmpeg.exe -i "$ans1" -ss $startTime -acodec copy -map 0 $outputFile
             }
 
             HandleFile $outputFile
@@ -296,7 +368,6 @@ DO {
         '10' {
             Show-SelectionMenu "10  -  Convert A Single WAV file to FLAC" 0
 
-            $scriptPath = 'D:\FFMPEG'
             $filesPath = $scriptPath + "\*"
             $arrayFiles = Get-ChildItem -Path $filesPath -Attributes !Directory+!System -Include '*.wav'
             $menu = @{ }
