@@ -27,7 +27,7 @@
 #                   Tidied up script.                                                                                         #
 #                   Now asks to open file and then delete                                                                     #
 # 1.10 : 13/03/23 : Added handling for start time variables to be automatically set to the start if null.                     #
-# 1.11 : 26/04/23 : Changed banner to include warning and author information.                                                 #
+# 1.11 : 26/04/23 : Changed runtime banner to include warning and author information.                                         #
 #                   Added a new function to check if a variable exists.                                                       #
 #                   Better checks for existing variables.                                                                     #
 #                   Variables laid out better using script scope.                                                             #
