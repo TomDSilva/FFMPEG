@@ -27,13 +27,13 @@
 #                   Tidied up script.                                                                                         #
 #                   Now asks to open file and then delete                                                                     #
 # 1.10 : 13/03/23 : Added handling for start time variables to be automatically set to the start if null.                     #
-# 1.11 : 26/04/23 : Changed runtime banner to include warning and author information.                                         #
-#                   Added new function to check if variable exists.                                                           #
+# 1.11 : 26/04/23 : Changed banner to include warning and author information.                                                 #
+#                   Added a new function to check if a variable exists.                                                       #
 #                   Better checks for existing variables.                                                                     #
 #                   Variables laid out better using script scope.                                                             #
 #                   File selection will now only accept integers and only those for files that it has checked already exist.  #
-#                   Now checks if the edited files output location exists, if it doesnt then it creates the folder.           #
-#                   Checks if ffmpeg.exe exists in the right location, if not then exit with error.                           #
+#                   Now checks if the edited files output location exists, if it doesn't then it creates the folder.          #
+#                   Checks if ffmpeg.exe exists in the right location, if not then exit with an error.                        #
 #                   Reformatted ffmpeg commands so they adhere to best practices.                                             #
 #                   Fixed bug where option 10 was hardcoded to a set location.                                                #
 #                   Tidied up version history formatting.                                                                     #
