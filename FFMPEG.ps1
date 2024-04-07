@@ -37,6 +37,8 @@
 #                   Reformatted ffmpeg commands so they adhere to best practices.                                             #
 #                   Fixed bug where option 10 was hardcoded to a set location.                                                #
 #                   Tidied up version history formatting.                                                                     #
+# 1.12 : 07/04/24 : Fixed bug when attempting to clear script level variables.                                                #
+#                   General formatting tidy, including more comments.                                                         #
 #                                                                                                                             #
 # Possible future changes:                                                                                                    #
 # Join more then 2 files.                                                                                                     #
@@ -65,9 +67,11 @@ Set-Location $scriptPath
 ###############################################################################################################################
 
 Function VariableExists ($variable) {
+    # If variable exists then return true:
     if (Get-Variable $variable -ErrorAction SilentlyContinue) {
         return $true
     }
+    # Else return false:
     else {
         return $false
     }
@@ -103,18 +107,23 @@ Function Show-Menu {
 Function Show-SelectionMenu ($selection, [INT]$numberOfSelections) {
 
     "You chose option #$selection"
+
     if ($numberOfSelections -NE 0) {
         $filesPath = $scriptPath + "\*"
+        
         $arrayFiles = Get-ChildItem -Path $filesPath -Attributes !Directory+!System -Include '*.mkv', '*.flv', '*.mp4', '*.m4a', '*.m4v', '*.f4v', '*.f4a', '*.m4b', '*.m4r', '*.f4b', '*.mov', '*.3gp', '*.3gp2', '*.3g2', '*.3gpp', '*.3gpp2', '*.ogg', '*.oga', '*.ogv', '*.ogx', '*.wmv', '*.wma', '*.asf', '*.VOB'
+        
         $menu = @{ }
 
         For ($i = 1; $i -le $arrayFiles.count; $i++) {
-            Write-Host "$i. $($arrayFiles[$i-1].name),$($arrayFiles[$i-1].status)" 
+            Write-Host "$i. $($arrayFiles[$i-1].name),$($arrayFiles[$i-1].status)"
+
             $menu.Add($i, ($arrayFiles[$i - 1].name))
         }
 
         If ($numberOfSelections -EQ 1) {
             $i = 0
+
             do {
                 if ($i -ge 1) {
                     Write-Warning "ERROR - Not a valid selection, please try again"
@@ -124,17 +133,18 @@ Function Show-SelectionMenu ($selection, [INT]$numberOfSelections) {
                 $i++
             } until ($ans -in $menu.Keys)
             if (VariableExists 'ans1') {
-                Remove-Variable 'ans1'
+                Remove-Variable -Name 'ans1' -Scope Global
             }
-            New-Variable -Name 'ans1' -Value $menu.Item($ans) -Scope 'Script'
+            New-Variable -Name 'ans1' -Value $menu.Item($ans) -Scope Global
             if (VariableExists 'outputFile') {
-                Remove-Variable 'outputFile'
+                Remove-Variable -Name 'outputFile' -Scope Global
             }
-            New-Variable -Name 'outputFile' -Value "$scriptPath\Edited Files\$ans1" -Scope 'Script'
+            New-Variable -Name 'outputFile' -Value "$scriptPath\Edited Files\$ans1" -Scope Global
         }
 
         If ($numberOfSelections -EQ 2) {
             $i = 0
+
             do {
                 if ($i -ge 1) {
                     Write-Warning "ERROR - Not a valid selection, please try again"
@@ -144,11 +154,12 @@ Function Show-SelectionMenu ($selection, [INT]$numberOfSelections) {
                 $i++
             } until ($ans -in $menu.Keys)
             if (VariableExists 'ans1') {
-                Remove-Variable 'ans1'
+                Remove-Variable 'ans1' -Scope Global
             }
-            New-Variable -Name 'ans1' -Value $menu.Item($ans) -Scope 'Script'
+            New-Variable -Name 'ans1' -Value $menu.Item($ans) -Scope Global
 
             $i = 0
+
             do {
                 if ($i -ge 1) {
                     Write-Warning "ERROR - Not a valid selection, please try again"
@@ -158,25 +169,30 @@ Function Show-SelectionMenu ($selection, [INT]$numberOfSelections) {
                 $i++
             } until ($ans -in $menu.Keys)
             if (VariableExists 'ans2') {
-                Remove-Variable 'ans2'
+                Remove-Variable 'ans2' -Scope Global
             }
-            New-Variable -Name 'ans2' -Value $menu.Item($ans) -Scope 'Script'
+            New-Variable -Name 'ans2' -Value $menu.Item($ans) -Scope Global
 
             if (VariableExists 'outputFile') {
-                Remove-Variable 'outputFile'
+                Remove-Variable 'outputFile' -Scope Global
             }
-            New-Variable -Name 'outputFile' -Value "$scriptPath\Edited Files\JOINED $ans1 - $ans2" -Scope 'Script'
+            New-Variable -Name 'outputFile' -Value "$scriptPath\Edited Files\JOINED $ans1 - $ans2" -Scope Global
         }
     }
 }
 
 Function HandleFile ($file) {
     $selection = Read-Host "Do you want to open the file? [y/N]"
+
     if ($selection -eq 'y') {
+        # Open file:
         Invoke-Item $file
+
         $selection = Read-Host "Delete? [y/N]"
+
         if ($selection -eq 'y') {
             try {
+                # Try to delete the file:
                 Remove-Item $file
             }
             catch {
@@ -186,6 +202,7 @@ Function HandleFile ($file) {
                 Write-Warning "The error message was:"
                 Write-Warning $error[0]
                 Write-Warning '---'
+                # Pause for user to read error:
                 Pause
             }
         }
@@ -204,20 +221,24 @@ if (!(Test-Path "$scriptPath\Edited Files\")) {
 # If ffmpeg.exe is not present in the correct location then exit with error:
 if (!(Test-Path "$scriptPath\bin\ffmpeg.exe")) {
     Write-Error "ffmpeg.exe not found in bin folder"
+
     exit 1
 }
 
 do {
+    # Display to screen the menu via the Show-Menu function:
     Show-Menu 
+
     $selection = Read-Host "Please make a selection"
+
     switch ($selection) {
         '1' {
             Show-SelectionMenu "1  -  Trim" 1
 
             do {
-                # Prompts for the Start Time
+                # Prompts for the Start Time:
                 $startTime = Read-Host -Prompt "Start Time? (HH:MM:SS or HH:MM:SS.SSS) OR just press enter to begin at the start of file."
-                # Prompts for the Stop Time
+                # Prompts for the Stop Time:
                 $stopTime = Read-Host -Prompt "Stop Time? (HH:MM:SS or HH:MM:SS.SSS) OR just press enter to skip to end of file."
 
                 if ([string]::IsNullOrWhiteSpace($startTime) -and [string]::IsNullOrWhiteSpace($stopTime)) {
@@ -239,6 +260,7 @@ do {
                 .\bin\ffmpeg.exe -i "$ans1" -ss $startTime -acodec copy -vcodec copy $outputFile
             }
 
+            # Pass to HandleFile function to ask if to open and then delete:
             HandleFile $outputFile
         }
 
@@ -247,6 +269,7 @@ do {
 
             .\bin\ffmpeg.exe -loglevel quiet -i "$ans1" -vcodec copy -an $outputFile
 
+            # Pass to HandleFile function to ask if to open and then delete:
             HandleFile $outputFile
         }
 
@@ -254,9 +277,9 @@ do {
             Show-SelectionMenu "3  -  Remove Audio & Trim" 1
 
             do {
-                # Prompts for the Start Time
+                # Prompts for the Start Time:
                 $startTime = Read-Host -Prompt "Start Time? (HH:MM:SS or HH:MM:SS.SSS) OR just press enter to begin at the start of file."
-                # Prompts for the Stop Time
+                # Prompts for the Stop Time:
                 $stopTime = Read-Host -Prompt "Stop Time? (HH:MM:SS or HH:MM:SS.SSS) OR just press enter to skip to end of file."
 
                 if ([string]::IsNullOrWhiteSpace($startTime) -and [string]::IsNullOrWhiteSpace($stopTime)) {
@@ -278,6 +301,7 @@ do {
                 .\bin\ffmpeg.exe -i "$ans1" -ss $startTime -vcodec copy -map 0 -an $outputFile
             }
 
+            # Pass to HandleFile function to ask if to open and then delete:
             HandleFile $outputFile
         }
 
@@ -285,21 +309,26 @@ do {
             Show-SelectionMenu "4  -  Remove Video" 1
 
             .\bin\ffmpeg.exe -loglevel quiet -i "$ans1" -acodec copy -vn $outputFile
-
+            
+            # Pass to HandleFile function to ask if to open and then delete:
             HandleFile $outputFile
         }
 
         '5' {
             Show-SelectionMenu "5  -  Join 2 Videos (Must Be Same Codecs)" 2
 
+            # Create temporary file to hold values:
             New-Item "$scriptPath\Input.txt"
+            # Add values to temporary file:
             Add-Content -Path "$scriptPath\Input.txt" -Value "file '$ans1'"
             Add-Content -Path "$scriptPath\Input.txt" -Value "file '$ans2'"
 
             .\bin\ffmpeg.exe -loglevel quiet -f concat -safe 0 -i Input.txt -acodec copy -vcodec copy -map 0 $outputFile
-
+            
+            # Remove temporary file now that we are done with it:
             Remove-Item "$scriptPath\Input.txt"
 
+            # Pass to HandleFile function to ask if to open and then delete:
             HandleFile $outputFile
         }
 
@@ -312,6 +341,7 @@ do {
 
             .\bin\ffmpeg.exe -loglevel quiet -i "$ans1" -vcodec copy -map 0 -af "volume=$volume" $outputFile
 
+            # Pass to HandleFile function to ask if to open and then delete:
             HandleFile $outputFile
         }
         
@@ -319,9 +349,9 @@ do {
             Show-SelectionMenu "7  -  Cut and convert to MP4 (THIS RE-ENCODES)" 1
             
             do {
-                # Prompts for the Start Time
+                # Prompts for the Start Time:
                 $startTime = Read-Host -Prompt "Start Time? (HH:MM:SS or HH:MM:SS.SSS) OR just press enter to begin at the start of file."
-                # Prompts for the Stop Time
+                # Prompts for the Stop Time:
                 $stopTime = Read-Host -Prompt "Stop Time? (HH:MM:SS or HH:MM:SS.SSS) OR just press enter to skip to end of file."
 
                 if ([string]::IsNullOrWhiteSpace($startTime) -and [string]::IsNullOrWhiteSpace($stopTime)) {
@@ -343,6 +373,7 @@ do {
                 .\bin\ffmpeg.exe -i "$ans1" -ss $startTime -acodec copy -map 0 $outputFile
             }
 
+            # Pass to HandleFile function to ask if to open and then delete:
             HandleFile $outputFile
         }
 
@@ -351,6 +382,7 @@ do {
 
             .\bin\ffmpeg.exe -i "$ans1" -vf reverse -af areverse $outputFile
 
+            # Pass to HandleFile function to ask if to open and then delete:
             HandleFile $outputFile
         }
 
@@ -386,4 +418,5 @@ do {
     }
 
 }
+# Keep showing main menu until user enters q to quit:
 Until ($selection -eq 'q')
